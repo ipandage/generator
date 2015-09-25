@@ -1,0 +1,117 @@
+<#include "/macro.include"/>
+<#assign className = table.className>   
+<#assign classNameLower = className?uncap_first> 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" 
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="${className}">
+
+    <typeAlias alias="${classNameLower}" type="${basepackage}.form.${className}"/>
+
+    <resultMap id="${classNameLower}Result" class="${classNameLower}">
+        <#list table.columns as column>
+        <#if column.sqlName== table.sqlName+'_ID'>
+        <result property="id" column="${column.sqlName}"/>
+        <#else>
+        <result property="${column.columnNameLower}" column="${column.sqlName}"/>
+        </#if>
+		</#list>
+    </resultMap>
+
+	<!-- 用于select查询公用抽取的列 -->
+	<sql id="commonColumns">
+	    <![CDATA[
+        <#list table.columns as column>
+        	${column.sqlName} <#if column_has_next>,</#if>
+        </#list>
+	    ]]>
+	</sql>
+	
+    <insert id="insert" parameterClass="${classNameLower}">
+	    <selectKey resultClass="int" keyProperty="id">
+			select ${table.sqlName}_SEQ.NEXTVAL from dual
+		</selectKey>
+    <![CDATA[
+        INSERT INTO
+        ${table.sqlName} (
+        <#list table.columns as column>
+        	${column.sqlName} <#if column_has_next>,</#if>
+        </#list>
+        ) VALUES (
+        <#list table.columns as column>
+        	<#if column.sqlName== table.sqlName+'_ID'>
+        	#id# <#if column_has_next>,</#if>
+        	<#else>
+        	<#if column.columnNameLower == 'createTime'>sysdate<#else>#${column.columnNameLower}#</#if><#if column_has_next>,</#if>
+        	</#if>
+        </#list>        
+        )
+    ]]>
+    </insert>
+
+    <update id="update" parameterClass="${classNameLower}">
+        UPDATE ${table.sqlName} 
+        	<dynamic prepend="set">
+	        <#list table.columns as column>
+	        <#if !column.pk>
+	        <isNotNull prepend="," property="${column.columnNameLower}">
+	        	${column.sqlName} = #${column.columnNameLower}# 
+	        </isNotNull>
+	        </#if>
+	        </#list>
+	        </dynamic>
+        WHERE 
+        	${table.sqlName}_ID=#id#
+    </update>
+
+    <update id="delete" parameterClass="int">
+	    delete from ${table.sqlName}  where ${table.sqlName}_ID=#id#
+    </update>
+    
+    <select id="select" resultMap="${classNameLower}Result">
+	    select <include refid="commonColumns"/>
+	    	from ${table.sqlName} where ${table.sqlName}_ID=#id#
+    </select>
+	
+	<!--
+		默认只生成等于条件，后缀规则：
+		ne 不等、lt 小于、gt 大于、le 小于或等于、ge 大于或等于、in 包含数组、lk 模糊匹配
+		例：<isNotEmpty prepend="AND" property="nameLk">name like '$nameLk$'</isNotEmpty>
+	-->
+	<sql id="dynamicWhere">
+       <#list table.columns as column>
+       <isNotEmpty prepend="AND" property="${column.columnNameLower}">
+             ${column.sqlName} = #${column.columnNameLower}#
+       </isNotEmpty>
+       </#list>
+	</sql>
+	 
+    <select id="cntByMap" resultClass="int">
+        select count(*) from ${table.sqlName} where 1=1 
+		<include refid="dynamicWhere"/>    
+    </select>
+    
+    <select id="getByMap" resultClass="int">
+    	select ${table.sqlName}_ID from ( select ${table.sqlName}_ID ,rownum as rn from
+    	(select ${table.sqlName}_ID from ${table.sqlName} where 1=1
+		<include refid="dynamicWhere"/>
+		<dynamic prepend="ORDER BY">
+			<isNotEmpty property="sortColumns">$sortColumns$</isNotEmpty>
+		</dynamic>
+		))
+		<isNotEmpty property="start"> where rn&gt;#start# and rn &lt;=#end# </isNotEmpty>
+    </select>
+
+    <#list table.columns as column>
+    <#if column.unique && !column.pk>
+    <select id="getBy${column.columnName}" resultClass="int" parameterClass="${column.javaType}">
+	    select ${table.sqlName}_ID
+	    <![CDATA[
+	        from ${table.sqlName} where ${column.sqlName} = #${column.columnNameLower}#
+	    ]]>
+    </select>
+    </#if>
+	</#list>
+	
+</sqlMap>

@@ -1,0 +1,74 @@
+<#include "/macro.include"/>
+<#assign className = table.className>
+<#assign classNameLower = className?uncap_first>
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="${className}">
+    <typeAlias alias="${className}" type="com.jd.sns.vip.domain.${classNameLower}.${className}" />
+    <typeAlias alias="${className}Query" type="com.jd.sns.vip.domain.${classNameLower}.query.${className}Query" />
+
+    <resultMap id="${className}Result" class="${className}">
+        <#list table.columns as column>
+        <result property="${column.columnNameLower}" column="${column.sqlName}" />
+        </#list>
+    </resultMap>
+
+    <sql id="${className}Field">
+        <#list table.columns as column>${column.sqlName}<#if column_has_next>,</#if></#list>
+    </sql>
+
+    <sql id="${className}Condition">
+        <dynamic prepend="where">
+            <isParameterPresent>
+                <#list table.columns as column>
+                <isNotEmpty prepend="and" property="${column.columnNameLower}">
+                    ${column.sqlName}=#${column.columnNameLower}#
+                </isNotEmpty>
+                </#list>
+            </isParameterPresent>
+        </dynamic>
+    </sql>
+
+    <select id="get${className}List" parameterClass="${className}Query" resultMap="${className}Result">
+        select
+        <include refid="${className}Field" />
+        from ${table.sqlName}
+        <include refid="${className}Condition" />
+        $sort$ limit #startRow#, #endRow#
+    </select>
+
+    <select id="get${className}ListCount" parameterClass="${className}Query" resultClass="Integer">
+        select count(1) from ${table.sqlName}
+        <include refid="${className}Condition" />
+    </select>
+
+    <sql id="${className}UpdateCondition">
+        <dynamic prepend="set">
+            <#list table.columns as column>
+            <isNotNull prepend="," property="${column.columnNameLower}">
+                ${column.sqlName}=#${column.columnNameLower}#
+            </isNotNull>
+            </#list>
+        </dynamic>
+    </sql>
+
+    <update id="update${className}" parameterClass="${className}">
+        update ${table.sqlName}
+        <include refid="${className}UpdateCondition" />
+        where  id=#id#
+    </update>
+
+    <insert id="insert${className}" parameterClass="${className}">
+        insert into
+        ${table.sqlName}(<#list table.columns as column>${column.sqlName}<#if column_has_next>,</#if></#list>)
+        values(<#list table.columns as column>#${column.columnNameLower}#<#if column_has_next>,</#if></#list>)
+    </insert>
+
+    <select id="get${className}ById" parameterClass="Long" resultMap="${className}Result">
+        select <include refid="${className}Field" /> from   ${table.sqlName}  where id = #id#
+    </select>
+
+    <delete id="delete${className}ById" parameterClass="Long">
+        delete from ${table.sqlName} where id=#id#
+    </delete>
+</sqlMap>
