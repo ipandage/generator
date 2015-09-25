@@ -16,8 +16,8 @@
 	<!-- 需要移除的表名前缀,使用逗号进行分隔多个前缀,示例值: t_,v_ -->
 	<entry key="tableRemovePrefixes"></entry>
 	
-	<entry key="jdbc_username">sa</entry>
-	<entry key="jdbc_password">1</entry>
+	<entry key="jdbc_username"></entry>
+	<entry key="jdbc_password"></entry>
 		
 	<!-- oracle需要指定jdbc_schema,并且可能要大写，其它数据库忽略此项配置  -->
 	<entry key="jdbc_schema"></entry>
@@ -47,7 +47,7 @@
 	-->
 	
 	<!-- SQLServer2005 -->
-	<entry key="jdbc_url">jdbc:sqlserver://172.18.1.1:18992;DatabaseName=guagua_agent</entry>
+	<entry key="jdbc_url"></entry>
 	<entry key="jdbc_driver">com.microsoft.sqlserver.jdbc.SQLServerDriver</entry>
 
 	<!-- JTDs for SQLServer 
